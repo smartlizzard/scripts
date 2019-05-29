@@ -53,3 +53,51 @@ pipeline {
         }
     }
 }
+
+
+################ Jenkins file for Gradle build And Send APK to Remort Server  #############################
+
+// SSH Pipeline Steps Plugin required for sshCommand
+
+node {
+   stage ('Clean Workspace'){
+     sh 'pwd'
+     sh 'ls -lrth'
+     sh ' rm -rf *'
+   }     
+   stage ('Source Code Checkout') {
+     git branch: 'Development', 
+     url: 'git URL'
+   }
+  stage ('Code analyse') {
+     sh 'echo “Run some lints”'
+   }
+  stage ('Unit test') {
+     sh 'echo “Tests will back”'
+   }
+  stage ('Build') {
+     sh 'chmod +x gradlew'
+     sh './gradlew clean assembleProdDebug'
+   }
+  stage ('find And Rename Artifacts'){
+     sh 'find ./ -type f -iname *.apk'
+     sh 'mv app/build/outputs/apk/prod/debug/app-prod-debug.apk DemoQc.apk'
+     sh 'ls -lrth'
+   }
+   def remote = [:]
+    remote.name = 'USER'
+    remote.host = 'IP'
+    remote.user = 'USER'
+    remote.password = 'PASSWORD'
+    remote.allowAnyHosts = true
+    stage('Remote SSH') {
+      sshCommand remote: remote, command: "ls -lrt"
+      sshPut remote: remote, from: 'DemoQc.apk', into: '/appstore/agileedge/int_files_download'
+      sshCommand remote: remote, command: "cd /appstore/agileedge/int_files_download && ls -lrth"
+      writeFile file: 'devscript.sh', text: '''sed -i "/<h4>DEV Builds<\/h4>/a                                                                         <a href="int_files_download/DemoDev.apk" target="_blank" data-role="button">Download Release 0.0.1</a>"  android.html'''
+      sshPut remote: remote, from: 'devscript.sh', into: '/appstore/agileedge/'
+      sshCommand remote: remote, command: "cd /appstore/agileedge && ls -lrth"
+      sshScript remote: remote, script: "/appstore/agileedge/devscript.sh"
+    }
+   
+}
