@@ -1,0 +1,55 @@
+########## Jenkins file for Run build on Agent  #########
+
+pipeline {
+  agent {
+    label 'Ubuntu'  // Name of the Agent
+    }
+    stages {
+        stage ('Source Code Checkout') {
+           git branch: 'Development', 
+           url: 'ssh://BitbucketURL'
+        }
+
+        stage('Prepare To Scan') {
+          steps {
+            writeFile file: 'gradle.properties', 
+            text: 
+            '''
+            sonar.projectKey=SignIn-frontend    // Variable As per requirment
+            sonar.projectName=ESF SignIn Frontend  // Variable As per requirment
+            sonar.projectVersion=1.0 
+            sonar.host.url=https://SonarQubeUrl  
+            sonar.login=admin           
+            sonar.password=********
+            sonar.sources=. 
+            sonar.language=JavaScript
+            sonar.sourceEncoding=UTF-8
+            '''
+            sh 'ls -l gradle.properties'
+            sh 'cat gradle.properties'
+            }
+        }
+        stage ('Code analyse') {
+          sh 'echo “Run some lints”'
+        }
+        stage ('Unit test') {
+          sh 'echo “Tests will back”'
+        }
+        stage ('Build') {
+          sh 'chmod +x gradlew'
+          sh './gradlew clean assembleProdDebug'
+       }
+       stage ('Deploy') {
+            steps{
+                sshagent(credentials : ['Appstore']) {
+                    sh 'scp DemoQc.apk support@RemortIp:PATH'
+                }
+            }
+        }
+    }
+    post { 
+        always { 
+            cleanWs()
+        }
+    }
+}
