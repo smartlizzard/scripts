@@ -163,3 +163,72 @@ sonar.sourceEncoding=UTF-8
         }  
     }
 }
+
+
+######################### This pipeline helps send purge JSON againest HTTP request ###########
+// Required plugin "Pipeline Utility Steps plugin" , "HTTP Request Plugin" , "Sonarqube" , "Sonarqube Quality Gate" 
+
+pipeline {
+    agent {
+    label 'master'
+    }
+    stages {
+        stage('CleanWorkspace') {
+            steps {
+                sh 'ls -lrth'
+                sh 'rm -rf *'
+            }
+        }    
+        stage('SCM') {
+            steps {
+                git branch: 'BRANCH', 
+                url: 'GIT URL'
+            }
+        }
+        stage ('prepare for scan'){
+          steps 
+            {
+               writeFile file: 'sonar-project.properties', 
+               text: 
+               '''
+                Write your text what you want to enter in sonar-project.properties file
+               '''
+               sh 'ls -l sonar-project.properties'
+               sh 'cat sonar-project.properties'
+            }
+        }
+        stage('SonarQube analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh 'sonar-scanner'
+                }
+            }
+        }
+        stage("Quality Gate"){
+            steps {
+                script {
+                    sh "cat .scannerwork/report-task.txt"
+                    def props = readProperties  file: '.scannerwork/report-task.txt'
+                    echo "properties=${props}"
+                    def sonarServerUrl=props['serverUrl']
+                    def ceTaskUrl= props['ceTaskUrl']
+                    def ceTask
+                    timeout(time: 1, unit: 'MINUTES') {
+                        waitUntil {
+                            def response = httpRequest ceTaskUrl
+                            ceTask = readJSON text: response.content
+                            echo ceTask.toString()
+                            return "SUCCESS".equals(ceTask["task"]["status"])
+                          }
+                    }
+                    def response2 = httpRequest url : sonarServerUrl + "/api/qualitygates/project_status?analysisId=" + ceTask["task"]["analysisId"], authentication: 'JENKINS_CREDENTIAL_ID'
+                    def qualitygate =  readJSON text: response2.content
+                    echo qualitygate.toString()
+                    if ("ERROR".equals(qualitygate["projectStatus"]["status"])) {
+                        error  "Quality Gate failure"
+                    }    
+                }  
+           }
+        }  
+    }
+}
