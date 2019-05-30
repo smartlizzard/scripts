@@ -92,12 +92,74 @@ node {
     remote.allowAnyHosts = true
     stage('Remote SSH') {
       sshCommand remote: remote, command: "ls -lrt"
-      sshPut remote: remote, from: 'DemoQc.apk', into: '/appstore/agileedge/int_files_download'
-      sshCommand remote: remote, command: "cd /appstore/agileedge/int_files_download && ls -lrth"
+      sshPut remote: remote, from: 'DemoQc.apk', into: '/home/support'
+      sshCommand remote: remote, command: "cd /home/support && ls -lrth"
       writeFile file: 'devscript.sh', text: '''sed -i "/<h4>DEV Builds<\/h4>/a                                                                         <a href="int_files_download/DemoDev.apk" target="_blank" data-role="button">Download Release 0.0.1</a>"  android.html'''
-      sshPut remote: remote, from: 'devscript.sh', into: '/appstore/agileedge/'
-      sshCommand remote: remote, command: "cd /appstore/agileedge && ls -lrth"
-      sshScript remote: remote, script: "/appstore/agileedge/devscript.sh"
+      sshPut remote: remote, from: 'devscript.sh', into: '/home/support'
+      sshCommand remote: remote, command: "cd /home/support && ls -lrth"
+      sshScript remote: remote, script: "/home/support/devscript.sh"
     }
    
+}
+
+
+################## RUN SONAR ANALYSIS FOR JAVA SCRIPT / PHP BASED PROJECT ###########################
+
+pipeline {
+    agent {
+    label 'master'
+    }
+    stages {
+        stage('CleanWorkspace') {
+            steps {
+                sh 'ls -lrth'
+                sh 'rm -rf *'
+            }
+        }    
+        stage('SCM') {
+            steps {
+                git branch: 'BRANCH', 
+                url: 'GIT URL'
+            }
+        }
+        stage ('prepare for scan'){
+          steps 
+            {
+               writeFile file: 'sonar-project.properties', 
+               text: 
+               '''
+sonar.projectKey=SignIn-frontend
+sonar.projectName=ESF SignIn Frontend
+sonar.projectVersion=1.0
+sonar.host.url=https://SONARQUBEURL  
+sonar.login=admin           
+sonar.password=PASSWORD
+sonar.sources=. 
+sonar.language=JavaScript
+sonar.sourceEncoding=UTF-8
+'''
+               sh 'ls -l sonar-project.properties'
+               sh 'cat sonar-project.properties'
+            }
+        }
+        stage('SonarQube analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh 'sonar-scanner'
+                }
+            }
+        }
+        stage("Quality Gate"){
+            steps {
+                script {
+                  timeout(time: 1, unit: 'HOURS') { 
+                     def qg = waitForQualityGate()
+                       if (qg.status != 'OK') {
+                          error "Pipeline aborted due to quality gate failure: ${qg.status}"
+                        }
+                   }    
+                }  
+           }
+        }  
+    }
 }
