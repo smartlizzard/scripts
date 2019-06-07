@@ -105,6 +105,8 @@ node {
 
 ################## RUN SONAR ANALYSIS FOR JAVA SCRIPT / PHP BASED PROJECT ###########################
 
+def failureMessage = """The SonarQube analysis failed for the release/dev branch,Please go through the error in SonarQube dashboard and fix them. For now last commit was reverting."""
+
 pipeline {
     agent {
     label 'master'
@@ -145,7 +147,7 @@ sonar.sourceEncoding=UTF-8
         stage('SonarQube analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
-                    sh 'sonar-scanner'
+                    sh 'sonar-scanner -Dsonar.branch.name=release/dev'
                 }
             }
         }
@@ -161,6 +163,16 @@ sonar.sourceEncoding=UTF-8
                 }  
            }
         }  
+    }
+    post { 
+        success { 
+            build job: 'BUILD PLAN NAME'
+        }
+        failure {
+           echo """${failureMessage}"""
+           sh 'git reset --hard HEAD@{1}' // IF YOU WANT TO REVERT THE LAST COMMIT
+           sh 'git push -f'
+        }
     }
 }
 
