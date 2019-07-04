@@ -1,0 +1,10 @@
+# Get Public IP of all instance of a security group
+aws ec2 describe-instances --filter "Name=tag:Name,Values=Demo-ASG" --query "Reservations[].Instances[].NetworkInterfaces[].PrivateIpAddresses[].Association.PublicIp" --region us-east-1
+
+#Output in jshon
+
+#Purge jshon with jq
+aws ec2 describe-instances --filter "Name=tag:Name,Values=Demo-ASG" --query "Reservations[].Instances[].NetworkInterfaces[].PrivateIpAddresses[].Association.PublicIp" --region us-east-1 | jq -r '. | map("ubuntu@"+.) | join(",")'
+
+#Output
+ubuntu@publiip,ubuntu@publiip
