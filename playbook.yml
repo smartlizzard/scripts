@@ -1,0 +1,46 @@
+- hosts: all
+  tasks:
+    - name: copy {{item}}
+      copy:
+        src: /home/ubuntu/ansible/files/{{item}}
+        dest: /tmp/{{item}}
+      with_items:
+        - test1.txt
+        - test2.txt
+        - test3.txt
+
+    - name: Download zip.
+      command: aws s3 cp s3://bucketforcft/demo/html.zip .
+      args:
+        chdir: /tmp
+    
+    - name: Delete docroot
+      become_user: root
+      file:
+        path: /var/www/html
+        state: absent 
+      become: yes
+
+    - name: create docroot
+      become_user: root
+      file:
+        path: /var/www/html
+        state: directory
+      become: yes
+
+    - name: Unarchive a file
+      become_user: root
+      unarchive:
+        src: /tmp/html.zip
+        dest: /var/www/html
+        remote_src: yes
+      become: yes
+
+    - name: Give permision to docroot
+      become_user: root
+      file:
+        path: /var/www
+        owner: www-data
+        group: www-data
+        mode: '0755'
+      become: yes
