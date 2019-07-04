@@ -1,0 +1,15 @@
+image: ubuntu
+
+Test SSH:
+  script:
+  - pwd
+  - ls
+  - rm -rf .git README.md LICENSE .gitignore
+  - zip -r html.zip *
+  - touch html.deployment
+  - aws s3 cp html.zip s3://bucketforcft/demo/
+  - aws s3 cp html.deployment s3://bucketforcft/demo
+
+Deploy:
+  script:
+  - ansible-playbook -i "$(aws ec2 describe-instances --filter "Name=tag:Name,Values=Demo-ASG" --query "Reservations[].Instances[].NetworkInterfaces[].PrivateIpAddresses[].Association.PublicIp" --region us-east-1 | jq -r '. | map("ubuntu@"+.) | join(",")')" --private-key /home/gitlab-runner/terraform-key.pem --ssh-common-args='-o StrictHostKeyChecking=no' /home/ubuntu/ansible/playbook/copyfile.yml
