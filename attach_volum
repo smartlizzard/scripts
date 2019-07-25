@@ -1,0 +1,80 @@
+How to attach extra disk to gcloud instances
+--------------------------------------------
+
+1. Open gcloud console and run the following
+2. gcloud compute instances attach-disk bamboo-new-server --disk swap --zone us-central1-c
+3. fdisk -l
+
+Steps for creating SWAP filesystem:
+-----------------------------------
+
+# fdisk /dev/sdb
+
+Welcome to fdisk (util-linux 2.27.1).
+Changes will remain in memory only, until you decide to write them.
+Be careful before using the write command.
+
+Device does not contain a recognized partition table.
+Created a new DOS disklabel with disk identifier 0x053b5655.
+
+Command (m for help): n
+Partition type
+   p   primary (0 primary, 0 extended, 4 free)
+   e   extended (container for logical partitions)
+Select (default p): p
+Partition number (1-4, default 1):
+First sector (2048-20971519, default 2048):
+Last sector, +sectors or +size{K,M,G,T,P} (2048-20971519, default 20971519): +10G
+
+Created a new partition 1 of type 'Linux' and of size 10 GiB.
+
+Command (m for help): p
+Disk /dev/sdb: 10 GiB, 10737418240 bytes, 20971520 sectors
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 4096 bytes
+I/O size (minimum/optimal): 4096 bytes / 4096 bytes
+Disklabel type: dos
+Disk identifier: 0x053b5655
+
+Device     Boot Start      End  Sectors Size Id Type
+/dev/sdb1        2048 20971519 20969472  10G 83 Linux
+
+Command (m for help): t
+Selected partition 1
+Partition type (type L to list all types): 82
+Changed type of partition 'Linux' to 'Linux swap / Solaris'.
+
+Command (m for help): w
+The partition table has been altered.
+Calling ioctl() to re-read partition table.
+Syncing disks.
+
+root@bamboo-new-server:~#
+
+------
+
+# cat /proc/partitions
+# mkswap /dev/sdb1          [Make swap partition]
+# swapon -a /dev/sdb1       [Activate the swap partition]
+# swapon -s                 [check the status of swap partitions]
+# free -m
+
+
+# vim /etc/fstab
+ /dev/sdb1               swap    swap    defaults        0 0
+
+# umount -a
+# df -Th
+# mount -a
+
+
+
+
+================================
+For extending exiting partition:
+================================
+
+# lsblk
+# growpart /dev/sda 1
+# resize2fs /dev/sda1
+# df -Th
