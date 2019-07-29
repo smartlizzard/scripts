@@ -1,1 +1,21 @@
 This Repository contains Important Scripts
+"workbench.colorTheme": "Visual Studio Light",
+  "yaml.format.enable": true,
+  "yaml.customTags": [
+    "!Equals sequence",
+    "!FindInMap sequence",
+    "!FindInMap scalar",
+    "!GetAtt scalar",
+    "!GetAtt Mapping",
+    "!GetAtt sequence",
+    "!GetAZs",
+    "!ImportValue",
+    "!Join sequence",
+    "!Ref",
+    "!Select sequence",
+    "!Split sequence",
+    "!Sub sequence",
+    "!Sub scalar",
+    "!Or sequence",
+    "!If sequence"
+  ]
