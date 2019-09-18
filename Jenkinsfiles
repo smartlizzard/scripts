@@ -244,3 +244,61 @@ pipeline {
         }  
     }
 }
+
+#############################################################################################################################
+
+pipeline {
+    agent {
+    label 'master'
+    }
+    stages {
+        stage('CleanWorkspace') {
+            steps {
+                sh 'ls -lrth'
+                sh 'rm -rf *'
+            }
+        }    
+        stage('SCM') {
+            steps {
+                git branch: 'release/dev',
+                url: 'GIT_URL'
+            }
+        }   
+        stage('SonarQube analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                   sh 'gradle sonarqube -Dsonar.branch.name=release/dev -Dsonar.branch.target=release/Qc'
+                }
+            }
+        }
+		stage("Quality Gate"){
+            steps {
+                script {
+                  timeout(time: 1, unit: 'HOURS') { 
+                     def qg = waitForQualityGate()
+                       if (qg.status != 'OK') {
+                          error "Pipeline aborted due to quality gate failure: ${qg.status}"
+                        }
+                   }   
+                }  
+           }
+        }
+		stage ('Build') {
+		     steps {
+                sh 'chmod +x gradlew'
+                sh './gradlew clean assembleDebug'
+			}
+        }
+        stage ('find Artifacts'){
+		   steps {
+               sh 'find ./ -type f -iname *.apk'
+               sh 'ls -lrth'
+			}
+        }
+        stage ('Publish Artifacts'){
+		    steps {
+               sh './gradlew :app:artifactoryPublish'
+		   }
+        }
+    }
+}
