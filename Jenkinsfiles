@@ -290,15 +290,59 @@ pipeline {
 			}
         }
         stage ('find Artifacts'){
-		   steps {
+	    steps {
                sh 'find ./ -type f -iname *.apk'
                sh 'ls -lrth'
-			}
+	      }
         }
         stage ('Publish Artifacts'){
-		    steps {
+	    steps {
                sh './gradlew :app:artifactoryPublish'
-		   }
+	     }
         }
     }
 }
+
+########################### ADD RUN TIME ENV #######################################
+
+pipeline {
+    agent {
+    label 'master'
+    }
+    environment {
+        DISABLE_AUTH = 'true'
+        DB_ENGINE    = 'sqlite'
+    }
+
+    stages {
+        stage('Build') {
+            steps {
+                sh 'printenv'
+            }
+        }
+        stage('SonarQube analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                   sh 'pwd'
+                   sh 'ls -lrth'
+                   sh 'cat sonar-project.properties'
+                   sh "sonar-scanner"
+                }
+            }
+        }
+        stage("Quality Gate"){
+            steps {
+                script {
+                  timeout(time: 1, unit: 'HOURS') { 
+                     def qg = waitForQualityGate()
+                       if (qg.status != 'OK') {
+                          error "Pipeline aborted due to quality gate failure: ${qg.status}"
+                        }
+                   }   
+                }  
+           }
+        }  
+    }
+}
+
+
