@@ -345,4 +345,28 @@ pipeline {
     }
 }
 
+###############################################################################################################
+
+
+pipeline {
+    agent any
+	def server = Artifactory.newServer 'my-server-id'
+    def rtGradle = Artifactory.newGradleBuild()
+    def buildInfo
+	
+    stages {
+        stage('Artifactory configuration') { 
+            rtGradle.tool = GRADLE_TOOL // Tool name from Jenkins configuration
+            rtGradle.deployer repo: 'libs-release-local', server: server
+            rtGradle.resolver repo: 'jcenter', server: server 
+            }
+		
+        stage('Exec Gradle') { 
+            buildInfo = rtGradle.run buildFile: 'build.gradle', tasks: 'clean artifactoryPublish' 
+            }
+
+        }
+    }
+
+
 
