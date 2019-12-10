@@ -1,0 +1,8 @@
+################## Install Ansible in Amazon Linux 2  ##############################
+# yum repolist
+# wget http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+# rpm -ivh epel-release-latest-7.noarch.rpm
+# yum — enablerepo=epel install ansible
+# yum repolist
+# yum install ansible
+# ansible --version
