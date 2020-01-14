@@ -20,7 +20,7 @@ This Repository contains Important Scripts
     "!If sequence"
   ]
 
-
+$ http --auth-type=edgegrid -a ccu: POST :/ccu/v3/invalidate/cpcode/staging objects:='["12345","98765"]'
 
 
 https://drive.google.com/drive/folders/
