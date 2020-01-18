@@ -22,7 +22,7 @@ This Repository contains Important Scripts
 
 $ http --auth-type=edgegrid -a ccu: POST :/ccu/v3/invalidate/cpcode/staging objects:='["12345","98765"]'
 
-
+https://gist.github.com/merikan/228cdb1893fca91f0663bab7b095757c  -----------> jenkinsfils
 https://drive.google.com/drive/folders/
 https://blog.programster.org/ansible-run-a-local-script-on-remote-server
 https://stackoverflow.com/questions/45424714/execute-a-bash-script-with-arguments-in-ansible
