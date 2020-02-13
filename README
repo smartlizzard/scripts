@@ -31,3 +31,5 @@ https://stackoverflow.com/questions/45424714/execute-a-bash-script-with-argument
 
 setsebool -P httpd_can_network_connect on ----for centos htppd proxy
 https://jenkins.io/doc/pipeline/examples/#slacknotify
+https://github.com/intel/intel-iot-refkit/blob/master/Jenkinsfile
+https://github.com/jenkinsci/pipeline-plugin/blob/master/TUTORIAL.md
