@@ -30,3 +30,4 @@ https://blog.programster.org/ansible-run-a-local-script-on-remote-server
 https://stackoverflow.com/questions/45424714/execute-a-bash-script-with-arguments-in-ansible
 
 setsebool -P httpd_can_network_connect on ----for centos htppd proxy
+https://jenkins.io/doc/pipeline/examples/#slacknotify
