@@ -433,3 +433,38 @@ freeStyleJob('test-job') {
 }
 
 
+===========================================================================
+
+
+#!/usr/bin/env groovy
+
+
+pipeline {
+  agent any
+    stages {
+        stage('CleanWorkspace') {
+          steps {
+              cleanWs()
+            }
+        }
+        stage('Cloning_Source_Code') {
+            steps {
+                sshagent(credentials : ['ec2-ssh-key']) {
+                    sh '''
+                    dir='/opt/jenkins/aap/dataload/data/stage/'
+                    ssh -t -o StrictHostKeyChecking=no ubuntu@10.0.0.120 << EOF
+                    if find "$dir" -mindepth 1 -print -quit 2>/dev/null | grep -q .; then
+                        ls "$dir" > output.txt
+                    else
+                        printf '%s\n' "$dir is an empty directory"
+                        exit 1
+                    fi
+                    '''
+                }
+            }
+        }
+    }
+}
+
+
+
