@@ -1,0 +1,270 @@
+# This is for Documentation
+
+k8s Cluster:
+
+Pre-requisites To Install Kubernetes:
+Since we are dealing with Aws cloud , we recommend the following settings:-
+
+All node and master should in one vpc.
+Open 6443 (master port) in master security group.
+
+Master:
+2 GB RAM
+2 Cores of CPU
+
+Slave/ Node:
+1 GB RAM
+1 Core of CPU
+
+In Master And Node:
+# apt-get update
+# swapoff -a
+# iptables -F && iptables -t nat -F && iptables -t mangle -F && iptables -X
+# vi /etc/hostname
+  k8smaster  (in master)
+  k8snode    (in node)
+
+# vi /etc/hosts
+  127.0.0.1 k8smaster [for master]
+  127.0.0.1 k8snode  [For node]
+  10.0.1.114 k8snode
+  10.0.1.15 k8smaster
+
+Comment if any mount in fstab:
+# vi /etc/fstab
+  LABEL=cloudimg-rootfs   /        ext4   defaults,discard        0 0
+  #/swapfile none swap sw 0 0
+# sudo apt-get update && sudo apt-get install -y apt-transport-https
+# curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+# echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee -a /etc/apt/sources.list.d/kubernetes.list
+# apt-get install -y docker.io
+# apt-get update
+# apt-get install -y kubelet kubeadm kubectl
+
+In Master:
+
+# kubeadm init --apiserver-advertise-address=10.10.2.81 --pod-network-cidr=10.10.0.0/16
+
+output:
+
+Your Kubernetes control-plane has initialized successfully!
+
+To start using your cluster, you need to run the following as a regular user:
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown (id -g) $HOME/.kube/config
+
+  You should now deploy a pod network to the cluster.
+  Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+Then you can join any number of worker nodes by running the following on each as root:
+# kubeadm join 172.31.95.118:6443 --token be76zq.x1n57swi9xntb657 --discovery-token-ca-cert-hash sha256:5ef0ffbf8dfa4ddd2eb3f01b0be865e698a925a10acdb3cebd017e4c72163834
+
+In Node:
+# kubeadm join 10.10.2.81:6443 --token qetrj4.jdsdfbetcy1uaovn --discovery-token-ca-cert-hash sha256:3f29ef83e670b1b381f8774bfb45bde0bc33fcc575bbc309c2a1a84f0564acce
+
+
+ubuntu@k8smaster:~/k8s/kube-dns$ kubectl get nodes
+NAME        STATUS     ROLES    AGE   VERSION
+k8smaster   NotReady   master   40m   v1.16.0
+k8snode     NotReady   <none>   15s   v1.16.0
+
+ubuntu@k8smaster:~/k8s/kube-dns$ kubectl describe nodes
+ERROR:
+Conditions:
+  Type             Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----             ------  -----------------                 ------------------                ------                       -------
+  MemoryPressure   False   Fri, 20 Sep 2019 21:17:56 +0000   Fri, 20 Sep 2019 20:08:58 +0000   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure     False   Fri, 20 Sep 2019 21:17:56 +0000   Fri, 20 Sep 2019 20:08:58 +0000   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure      False   Fri, 20 Sep 2019 21:17:56 +0000   Fri, 20 Sep 2019 20:08:58 +0000   KubeletHasSufficientPID      kubelet has sufficient PID available
+  Ready            False   Fri, 20 Sep 2019 21:17:56 +0000   Fri, 20 Sep 2019 20:08:58 +0000   KubeletNotReady              runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:docker: network plugin is not ready: cni config uninitialized
+
+
+For enable network:
+
+ubuntu@k8smaster:~/k8s/kube-dns$ kubectl apply -f https://docs.projectcalico.org/v3.8/manifests/calico.yaml
+
+
+Get All nodes:
+
+ubuntu@k8smaster:/etc/cni/net.d$ kubectl get nodes
+NAME        STATUS   ROLES    AGE    VERSION
+k8smaster   Ready    master   107m   v1.16.0
+k8snode     Ready    <none>   67m    v1.16.0
+
+
+For lable a node:
+
+ubuntu@k8smaster:/etc/cni/net.d$ kubectl label node k8snode node-role.kubernetes.io/worker=worker
+node/k8snode labeled
+ubuntu@k8smaster:/etc/cni/net.d$ kubectl get nodes
+NAME        STATUS   ROLES    AGE    VERSION
+k8smaster   Ready    master   115m   v1.16.0
+k8snode     Ready    worker   75m    v1.16.0
+ubuntu@k8smaster:/etc/cni/net.d$
+
+Command to log in to pod container :
+# kubectl exec -it elasticsearch-64958d5b7c-jgqjt --namespace=kube-system -- /bin/bash
+
+
+# kubeadm token create  --ttl=0   [Here ttl=0 means, generated token will never expire.]
+# kubectl cluster-info
+# kubectl get pods --namespace=kube-system
+# kubectl apply -f es-statefulset.yaml
+# kubectl delete -f es-statefulset.yaml
+# kubectl describe  pod elasticsearch-logging-0 --namespace=kube-system
+
+# kubectl port-forward kibana-6c9fb4b5b7-plbg2 5601:5601 --namespace=kube-logging
+# kubectl port-forward kibana-logging-6b9786df4d-zn4gf 5601:5601 --namespace=kube-system
+
+live tail log of pods
+# kubectl logs -f <pod-id>
+
+# create k8s secret for dockerhub
+# kubectl create secret docker-registry dockerhub --docker-server=https://index.docker.io/v1/ --docker-username=smartlizzard --docker-password=mitu@1991 --docker-email=pradhanraghunath91@gmail.com
+
+ubuntu@k8s-admin-poc:~/logging/elasticsearch$ kubectl get svc --namespace=kube-system  
+
+NAME                   TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)               AGE
+default-http-backend   NodePort    10.12.6.191    <none>        80:30694/TCP          64d
+elasticsearch          NodePort    10.12.2.143    <none>        9200:31119/TCP        6m6s
+fluentd-es             ClusterIP   10.12.15.72    <none>        24224/TCP,24224/UDP   6m6s
+heapster               ClusterIP   10.12.10.170   <none>        80/TCP                64d
+kube-dns               ClusterIP   10.12.0.10     <none>        53/UDP,53/TCP         64d
+metrics-server         ClusterIP   10.12.10.243   <none>        443/TCP               64d
+tiller-deploy          ClusterIP   10.12.10.36    <none>        44134/TCP             31d
+
+# kubectl exec -it elasticsearch-7ff65fbb5-7flnf --namespace=kube-system curl 10.12.2.143:9200
+
+
+apt-get update
+apt-get upgrade -y
+iptables -F && iptables -t nat -F && iptables -t mangle -F && iptables -X
+swapoff -a
+sudo apt-get update
+sudo apt-get install -y apt-transport-https ca-certificates curl gnupg-agent software-properties-common
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo apt-key fingerprint 0EBFCD88
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+sudo apt-get update
+sudo apt-get install docker-ce docker-ce-cli containerd.io -y
+sudo apt-get update && sudo apt-get install -y apt-transport-https
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee -a /etc/apt/sources.list.d/kubernetes.list
+apt-get update
+apt-get install -y kubelet kubeadm
+systemctl enable docker && systemctl start docker
+systemctl daemon-reload
+systemctl restart kubelet
+systemctl enable kubelet && systemctl start kubelet
+
+kubeadm join 172.31.94.55:6443 --token 7jekoq.td28qwrscso24fbz --discovery-token-ca-cert-hash sha256:43db082cd35271b7a2359afdada1888c3817c9780cf5c7751bde5a4d7ac3205b
+
+
+REF: 
+https://www.edureka.co/blog/install-kubernetes-on-ubuntu
+https://kubernetes.io/docs/tasks/tools/install-kubectl/
+https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/#pod-network
+https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+http://www.dasblinkenlichten.com/logging-in-kubernetes-with-fluentd-and-elasticsearch/
+https://github.com/ramitsurana/awesome-kubernetes
+
+https://github.com/kubernetes-retired/contrib/tree/master/ansible
+https://github.com/tensult/terraform/blob/master/aws/Kubernetes/cluster/eks-cluster.tf
+
+https://github.com/in4it  -------------> for Terraform
+https://github.com/wardviaene
+
+
+# kubectl create clusterrolebinding cluster-system-anonymous --clusterrole=cluster-admin --user=system:anonymous
+https://www.edureka.co/community/34714/code-error-403-when-trying-to-access-kubernetes-cluster
+
+13.64.107.10 -Azure Ip k8s master
+User : azureuser
+pass: Password!1
+104.42.4.141 ----Azure k8s node
+
+Error:
+
+root@k8snode-1:/home/ubuntu# kubeadm join 172.31.95.118:6443 --token be76zq.x1n57swi9xntb657 --discovery-token-ca-cert-hash sha256:5ef0ffbf8dfa4ddd2eb3f01b0be865e698a925a10acdb3cebd017e4c72163834
+[preflight] Running pre-flight checks
+        [WARNING IsDockerSystemdCheck]: detected "cgroupfs" as the Docker cgroup driver. The recommended driver is "systemd". Please follow the guide at https://kubernetes.io/docs/setup/cri/
+[preflight] Reading configuration from the cluster...
+[preflight] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -oyaml'
+[kubelet-start] Downloading configuration for the kubelet from the "kubelet-config-1.16" ConfigMap in the kube-system namespace
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+[kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+[kubelet-start] Activating the kubelet service
+[kubelet-start] Waiting for the kubelet to perform the TLS Bootstrap...
+[kubelet-check] Initial timeout of 40s passed.
+error execution phase kubelet-start: error uploading crisocket: timed out waiting for the condition
+To see the stack trace of this error execute with --v=5 or higher
+root@k8snode-1:/home/ubuntu# sudo systemctl enable docker
+Synchronizing state of docker.service with SysV service script with /lib/systemd/systemd-sysv-install.
+Executing: /lib/systemd/systemd-sysv-install enable docker
+root@k8snode-1:/home/ubuntu# sudo systemctl enable kubelet
+root@k8snode-1:/home/ubuntu# systemctl daemon-reload
+root@k8snode-1:/home/ubuntu# systemctl restart docker
+root@k8snode-1:/home/ubuntu# systemctl restart kubelet
+root@k8snode-1:/home/ubuntu# sudo kubeadm reset
+[reset] WARNING: Changes made to this host by 'kubeadm init' or 'kubeadm join' will be reverted.
+[reset] Are you sure you want to proceed? [y/N]: y
+[preflight] Running pre-flight checks
+W1129 20:18:10.779222    4063 removeetcdmember.go:79] [reset] No kubeadm config, using etcd pod spec to get data directory
+[reset] No etcd config found. Assuming external etcd
+[reset] Please, manually reset etcd to prevent further issues
+[reset] Stopping the kubelet service
+[reset] Unmounting mounted directories in "/var/lib/kubelet"
+[reset] Deleting contents of config directories: [/etc/kubernetes/manifests /etc/kubernetes/pki]
+[reset] Deleting files: [/etc/kubernetes/admin.conf /etc/kubernetes/kubelet.conf /etc/kubernetes/bootstrap-kubelet.conf /etc/kubernetes/controller-manager.conf /etc/kubernetes/scheduler.conf]
+[reset] Deleting contents of stateful directories: [/var/lib/kubelet /etc/cni/net.d /var/lib/dockershim /var/run/kubernetes /var/lib/cni]
+
+The reset process does not reset or clean up iptables rules or IPVS tables.
+If you wish to reset iptables, you must do so manually by using the "iptables" command.
+
+If your cluster was setup to utilize IPVS, run ipvsadm --clear (or similar)
+to reset your system's IPVS tables.
+
+The reset process does not clean your kubeconfig files and you must remove them manually.
+Please, check the contents of the $HOME/.kube/config file.
+
+
+
+Role binding with cluster admin
+--------------------------------
+
+$ cat role-binding.yaml
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: jenkins
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: jenkins
+  namespace: ci
+  
+check: 
+$ kubectl describe ClusterRoleBinding jenkins -n ci
+
+Name:         jenkins
+Labels:       <none>
+Annotations:  Role:
+  Kind:       ClusterRole
+  Name:       cluster-admin
+Subjects:
+  Kind            Name     Namespace
+  ----            ----     ---------
+  ServiceAccount  jenkins  ci
+  
+Then follow from step-4 in below document
+ TOKEN=`kubectl -n ci get secret jenkins-token-p8lhw -o jsonpath='{.data.token}'| base64 --decode` $ kubectl get pods
+
+https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Tasks/contengaddingserviceaccttoken.htm  -----> cluster login with service account
