@@ -6,3 +6,22 @@
 # yum repolist
 # yum install ansible
 # ansible --version
+
+# https://developers.redhat.com/blog/2018/12/10/install-java-rhel8#switching_java_versions
+$ sudo alternatives --config javac
+There are 2 programs which provide 'javac'.
+Selection      Command
+-----------------------------------------------
+*+ 1           java-1.8.0-openjdk.x86_64 (/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.191.b12-8.el8.x86_64/jre/bin/javac)
+   2           java-11-openjdk.x86_64 (/usr/lib/jvm/java-11-openjdk-11.0.1.13-4.el8.x86_64/bin/javac)
+
+Enter to keep the current selection[+], or type selection number: 2
+Switching alternatives non-interactively
+Here is an approach to switch to JDK 11, via alternatives, using non-interactive means, which comes in handy if you need to script it:
+
+$ JAVA_11=$(alternatives --display java | grep 'family java-11-openjdk' | cut -d' ' -f1)
+$ sudo alternatives --set java $JAVA_11
+Similarly, switching to JDK 8 via alternatives by non-interactive means:
+
+$ JAVA_8=$(alternatives --display java | grep 'family java-1.8.0-openjdk' | cut -d' ' -f1)
+$ sudo alternatives --set java $JAVA_8
